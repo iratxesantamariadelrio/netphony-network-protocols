@@ -689,6 +689,12 @@ public class LinkStateAttribute  extends PathAttribute{
 //	public void setIPv4RouterIDLocalNodeNATLV(IPv4RouterIDLocalNodeNodeAttribTLV iPv4RouterIDLocalNodeNATLV) {
 //		IPv4RouterIDLocalNodeNATLV = iPv4RouterIDLocalNodeNATLV;
 //	}
+	public PrefixSIDPrefixAttribTLV getPrefixSIDTLV() {
+		return prefixSIDTLV;
+	}
+	public void setPrefixSIDTLV(PrefixSIDPrefixAttribTLV prefixSIDTLV) {
+		this.prefixSIDTLV = prefixSIDTLV;
+	}
 
 	public AvailableLabels getAvailableLabels() {
 		return availableLabels;
@@ -845,3 +851,4 @@ public class LinkStateAttribute  extends PathAttribute{
 
 
 }
+
