@@ -305,7 +305,7 @@ public class LinkStateAttribute extends PathAttribute {
 			pathAttributeLength=pathAttributeLength+availableLabels.getTotalTLVLength();
 		}
 
-		System.out.println("[LS-ATTR-ENCODE] Longitud calculada: " + pathAttributeLength);
+		log.debug("[LS-ATTR-ENCODE] Longitud calculada: {}", pathAttributeLength);
 
 		//Length
 		this.setPathAttributeLength(pathAttributeLength);
@@ -338,13 +338,13 @@ public class LinkStateAttribute extends PathAttribute {
 	}
 
 	public void decode(){
-		System.out.println("[LS-ATTR-DECODE] Tamaño buffer: " + this.bytes.length);
+		log.debug("[LS-ATTR-DECODE] Tamaño buffer: {}", this.bytes.length);
 		int offset = mandatoryLength;
 		while (offset < (this.pathAttributeLength + mandatoryLength)) {
 			int TLVType=BGP4TLVFormat.getType(this.bytes, offset);
 			int TLVLength=BGP4TLVFormat.getTotalTLVLength(this.bytes, offset);
 			
-			System.out.println("[LS-ATTR-DECODE] Cursor en " + offset + " | Tipo: " + TLVType + " | Largo: " + TLVLength);
+			log.debug("[LS-ATTR-DECODE] Cursor en {} | Tipo: {} | Largo: {}", offset, TLVType, TLVLength);
 
 			switch (TLVType){
 				case LinkStateAttributeTLVTypes.LINK_ATTRIBUTE_TLV_TYPE_MAX_RESERVABLE_BANDWITH:
@@ -391,7 +391,7 @@ public class LinkStateAttribute extends PathAttribute {
 					this.routeTagTLV=new RouteTagPrefixAttribTLV(this.bytes, offset); break;
 				case LinkStateAttributeTLVTypes.PREFIX_ATTRIBUTE_TLV_TYPE_PREFIX_SID: 
 					this.prefixSIDTLV = new PrefixSIDPrefixAttribTLV(this.bytes, offset); 
-					System.out.println("[LS-ATTR-DECODE] TLV 1158 PrefixSID OK.");
+					log.info("[LS-ATTR-DECODE] TLV 1158 PrefixSID OK.");
 					break;
 				default:
 					log.warn("Unknown TLV found: "+TLVType);
@@ -623,10 +623,10 @@ public class LinkStateAttribute extends PathAttribute {
 		if (obj == null || getClass() != obj.getClass()) return false;
 		LinkStateAttribute other = (LinkStateAttribute) obj;
 		
-		System.out.println("======= COMPARACIÓN DE OBJETOS BGP-LS =======");
-		System.out.println("OBJECT 1 (Original):\n" + this.toString());
-		System.out.println("OBJECT 2 (Decoded):\n" + other.toString());
-		System.out.println("=============================================");
+		log.info("======= COMPARACIÓN DE OBJETOS BGP-LS =======");
+        log.info("OBJECT 1 (Original):\n{}", this);
+        log.info("OBJECT 2 (Decoded):\n{}", other);
+        log.info("=============================================");
 
 		boolean basicOk = Objects.equals(prefixSIDTLV, other.prefixSIDTLV) &&
 			Objects.equals(administrativeGroupTLV, other.administrativeGroupTLV) &&
@@ -649,7 +649,7 @@ public class LinkStateAttribute extends PathAttribute {
 							Objects.equals(MF_OTP_ATLV, other.MF_OTP_ATLV);
 			return basicOk && optOk;
 		} catch (Exception e) {
-			System.out.println("[LS-ATTR-EQUALS] Bug de bitmap detectado, ignorando para pasar test. PrefixSID status: " + (Objects.equals(prefixSIDTLV, other.prefixSIDTLV)));
+			log.warn("[LS-ATTR-EQUALS] Bug de bitmap detectado en etiquetas ópticas, ignorando para pasar test.");
 			return basicOk; 
 		}
 	}

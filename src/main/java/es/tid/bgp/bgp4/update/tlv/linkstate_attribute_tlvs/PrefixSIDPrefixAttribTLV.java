@@ -1,6 +1,8 @@
 package es.tid.bgp.bgp4.update.tlv.linkstate_attribute_tlvs;
 
 import es.tid.bgp.bgp4.update.tlv.BGP4TLVFormat;
+import org.slf4j.Logger;         
+import org.slf4j.LoggerFactory;
 import java.util.Objects;
 
 /**
@@ -10,7 +12,8 @@ import java.util.Objects;
  * L-Flag: Local bit.
  */
 public class PrefixSIDPrefixAttribTLV extends BGP4TLVFormat {
-    
+
+    private static final Logger log = LoggerFactory.getLogger(PrefixSIDPrefixAttribTLV.class);
     private int flags;
     private int algorithm;
     private long sidIndex = -1;
@@ -65,6 +68,8 @@ public class PrefixSIDPrefixAttribTLV extends BGP4TLVFormat {
         boolean isLabel = ((flags & 0x04) != 0) || ((flags & 0x08) != 0);
         int valueLength = this.getTLVValueLength();
 
+        log.debug("Decoding Prefix-SID: isLabel={}, algorithm={}, length={}", isLabel, algorithm, valueLength);
+
         if (isLabel && valueLength == 5) {
             this.label = ((tlv_bytes[6] & 0xFF) << 12) |
                          ((tlv_bytes[7] & 0xFF) << 4) |
@@ -76,6 +81,8 @@ public class PrefixSIDPrefixAttribTLV extends BGP4TLVFormat {
                             ((long)(tlv_bytes[8] & 0xFF) << 8) |
                             ((long)(tlv_bytes[9] & 0xFF));
             this.label = -1; // Limpiamos para el equals
+        } else {
+            log.warn("Invalid Prefix-SID format: Flags indicate isLabel={}, but valueLength is {}", isLabel, valueLength);
         }
     }
 
