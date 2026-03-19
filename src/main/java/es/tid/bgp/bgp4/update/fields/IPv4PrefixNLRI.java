@@ -5,6 +5,7 @@ import es.tid.bgp.bgp4.update.tlv.LocalNodeDescriptorsTLV;
 import es.tid.bgp.bgp4.update.tlv.RoutingUniverseIdentifierTypes;
 import es.tid.bgp.bgp4.update.tlv.node_link_prefix_descriptor_subTLVs.*;
 
+import java.util.logging.Logger;
 /**
  * 
  * @author ogondio
@@ -12,7 +13,7 @@ import es.tid.bgp.bgp4.update.tlv.node_link_prefix_descriptor_subTLVs.*;
  */
 public class IPv4PrefixNLRI extends LinkStateNLRI {
 	
-	private int protocolID;//inicializado a 0(unknown)
+	private int protocolID;
 	private long routingUniverseIdentifier;
 	private LocalNodeDescriptorsTLV localNodeDescriptors;
 	private OSPFRouteTypeTLV OSPFRouteType;
@@ -103,52 +104,61 @@ public class IPv4PrefixNLRI extends LinkStateNLRI {
 	
 	}
 
-	private void decode() {	
-		//Decoding Prefix NLRI");
-		int offset = 4; //Cabecera del LinkState NLRI
-		protocolID = this.bytes[offset];
-		offset=offset +1; //identifier
-		
-		byte[] ip=new byte[8]; 
-		System.arraycopy(this.bytes,offset, ip, 0, 8);
-		
-		long routingUniverseIdentifieraux1 = ((  ((long)bytes[offset]&0xFF)   <<24)& 0xFF000000) |  (((long)bytes[offset+1]<<16) & 0xFF0000) | (((long)bytes[offset+2]<<8) & 0xFF00) |(((long)bytes[offset+3]) & 0xFF);
-		long routingUniverseIdentifieraux2 = ((  ((long)bytes[offset+4]&0xFF)   <<24)& 0xFF000000) |  (((long)bytes[offset+5]<<16) & 0xFF0000) | (((long)bytes[offset+6]<<8) & 0xFF00) |(((long)bytes[offset+7]) & 0xFF);
-		//this.setRoutingUniverseIdentifier((2^32)*routingUniverseIdentifieraux1+routingUniverseIdentifieraux2);
-		this.setRoutingUniverseIdentifier((routingUniverseIdentifieraux1 <<32)&0xFFFFFFFF00000000L | routingUniverseIdentifieraux2);
-		offset = offset +8;
-	
-		this.localNodeDescriptors=new LocalNodeDescriptorsTLV(this.bytes, offset);
-		offset = offset + localNodeDescriptors.getTotalTLVLength();
-		
-		boolean fin=false;
-		if (offset>=(this.getTotalNLRILength())){
-			fin=true;
-		}
-		while (!fin) {
-			int subTLVType=BGP4TLVFormat.getType(bytes, offset);
-			int subTLVLength=BGP4TLVFormat.getTotalTLVLength(bytes, offset);
-			
-			switch (subTLVType){
-			case PrefixDescriptorSubTLVTypes.PREFIX_DESCRIPTOR_SUB_TLV_TYPE_IPV4_REACHABILITY_INFO:
-				this.ipReachability=new IPReachabilityInformationTLV(bytes, offset);
-				log.info("TLV 265 detectada en NLRI: " + this.ipReachability.toString());
-				break;
-				
-			case PrefixDescriptorSubTLVTypes.PREFIX_DESCRIPTOR_SUB_TLV_TYPE_OSPF_ROUTE_TYPE:
-				this.OSPFRouteType=new OSPFRouteTypeTLV(bytes, offset);
-				break;
-			default:
-				log.warn("Unknown sub TLV found, subtype "+subTLVType);
-			}
-		
-		offset=offset+subTLVLength;
-		if (offset>=(this.getTotalNLRILength()/*+4*/)){
-			fin=true;
-		}
-		
-		}
-	}
+	private void decode() { 
+        int offset = 4; 
+        this.protocolID = this.bytes[offset] & 0xFF;
+        log.info("DECODING PREFIX: ProtocolID=" + this.protocolID + " at offset=" + offset);
+        offset = offset + 1; 
+        StringBuilder hexIdent = new StringBuilder();
+        for(int i=0; i<8; i++) {
+            hexIdent.append(String.format("%02X ", this.bytes[offset + i]));
+        }
+        log.info("RAW IDENTIFIER BYTES: " + hexIdent.toString());
+
+        long identifier = 0;
+        for (int i = 0; i < 8; i++) {
+            identifier <<= 8;
+            identifier |= (this.bytes[offset + i] & 0xFFL);
+        }
+        
+        this.setRoutingUniverseIdentifier(identifier);
+        log.info("DECODED IDENTIFIER RESULT: " + this.routingUniverseIdentifier);
+        offset = offset + 8;
+
+     
+        this.localNodeDescriptors = new LocalNodeDescriptorsTLV(this.bytes, offset);
+        offset = offset + localNodeDescriptors.getTotalTLVLength();
+        
+       
+        boolean fin = false;
+        if (offset >= (this.getTotalNLRILength())) {
+            fin = true;
+        }
+        
+        while (!fin) {
+            int subTLVType = BGP4TLVFormat.getType(bytes, offset);
+            int subTLVLength = BGP4TLVFormat.getTotalTLVLength(bytes, offset);
+            
+            log.info("Found Prefix SubTLV: Type=" + subTLVType + " Length=" + subTLVLength);
+
+            switch (subTLVType) {
+                case PrefixDescriptorSubTLVTypes.PREFIX_DESCRIPTOR_SUB_TLV_TYPE_IPV4_REACHABILITY_INFO:
+                    this.ipReachability = new IPReachabilityInformationTLV(bytes, offset);
+                    log.info("Prefix Reachability decoded: " + this.ipReachability.toString());
+                    break;
+                case PrefixDescriptorSubTLVTypes.PREFIX_DESCRIPTOR_SUB_TLV_TYPE_OSPF_ROUTE_TYPE:
+                    this.OSPFRouteType = new OSPFRouteTypeTLV(bytes, offset);
+                    break;
+                default:
+                    log.warn("Unknown Prefix SubTLV found: " + subTLVType);
+            }
+        
+            offset = offset + subTLVLength;
+            if (offset >= (this.getTotalNLRILength())) {
+                fin = true;
+            }
+        }
+    }
 
 	public int getProtocolID() {
 		return protocolID;
@@ -167,7 +177,7 @@ public class IPv4PrefixNLRI extends LinkStateNLRI {
 	}
 	
 	public void setRoutingUniverseIdentifier(long level3identifier) {
-		// TODO Auto-generated method stub
+		this.routingUniverseIdentifier = level3identifier;
 		
 	}
 	
@@ -204,7 +214,7 @@ public class IPv4PrefixNLRI extends LinkStateNLRI {
     public String toString() {
         StringBuilder sb = new StringBuilder(200);
         sb.append("IPv4PrefixNLRI [Protocol-ID=").append(protocolID)
-          .append(", Identifier=").append(routingUniverseIdentifier);
+          .append(", RoutingIdentifier=").append(routingUniverseIdentifier);
         
         if (localNodeDescriptors != null) {
             sb.append(", ").append(localNodeDescriptors.toString());
